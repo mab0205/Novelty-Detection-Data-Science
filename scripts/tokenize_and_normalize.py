@@ -1,10 +1,12 @@
+import os
 import nltk
 from nltk.tokenize import word_tokenize
 
 # Descargar stopwords y configurar path de datos de nltk
 nltk.download('stopwords')
 nltk.download('punkt')
-nltk.data.path.append('/home/mab0205/respaldos_linux_10_2024/UTFPR/semestre 2024.2/Ciencias de dados 2/nltk_data')
+base_dir = os.getcwd()
+corpus_dir = os.path.join(base_dir, 'nltk_data')
 
 # Lista de stopwords en inglés
 stopwords = nltk.corpus.stopwords.words('english')

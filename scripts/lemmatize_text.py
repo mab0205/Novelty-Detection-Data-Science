@@ -1,8 +1,6 @@
 import spacy
 import re
 
-
-
 nlp = spacy.load("en_core_web_sm")
 
 def lemmatize_text(df_news):
