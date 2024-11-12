@@ -12,9 +12,8 @@ class CorpusParser:
         3. Save the data in a structured format (CSV) to facilitate analysis and model training for novelty detection.
     """
 
-    def __init__(self, corpus_dir, category='SPORTS'):
+    def __init__(self, corpus_dir):
         self.corpus_dir = corpus_dir
-        self.category = category
         self.data = []
 
     def parse(self):
@@ -25,83 +24,88 @@ class CorpusParser:
         Returns:
             pd.DataFrame: A DataFrame containing all news articles and metadata.
         """
-        category_path = os.path.join(self.corpus_dir, self.category)
-        
-        for event_id in os.listdir(category_path):
-            event_path = os.path.join(category_path, event_id)
+        # Itera sobre todas as categorias (pastas) no nível mais alto do diretório do corpus
+        for category in os.listdir(self.corpus_dir):
+            category_path = os.path.join(self.corpus_dir, category)
             
-            for folder in ['source', 'target']:
-                folder_path = os.path.join(event_path, folder)
-                if os.path.exists(folder_path):
-                    is_source = folder == 'source'
-                    for file_name in os.listdir(folder_path):
-                        if file_name.endswith('.txt'):
-                            news_id = file_name.split('.')[0]
-                            txt_path = os.path.join(folder_path, file_name)
-                            
-                            # Attempt to open the .txt file with UTF-8, fallback to ISO-8859-1 if needed
-                            content = self._load_content(txt_path)
-                            
-                            # Default metadata values
-                            metadata = {
-                                'DOP': None,
-                                'publisher': None,
-                                'title': None,
-                                'eventid': None,
-                                'eventname': None,
-                                'topic': None,
-                                'sentence': None,
-                                'words': None,
-                                'sourceid': None,
-                                'DLA': None,
-                                'SLNS': None
-                            }
-                            
-                            # Look for the corresponding .xml metadata file
-                            xml_file = os.path.join(folder_path, f"{news_id}.xml")
-                            if os.path.exists(xml_file):
-                                metadata = self._load_metadata(xml_file, metadata)
-                            
-                            # Append data to the dataset
-                            self.data.append({
-                                'event_id': event_id,
-                                'news_id': news_id,
-                                'content': content,
-                                'is_source': is_source,
-                                **metadata
-                            })
+            # Verifica se é uma pasta
+            if os.path.isdir(category_path):
+                for event_id in os.listdir(category_path):
+                    event_path = os.path.join(category_path, event_id)
 
-        # Convert the list of data to a DataFrame
+                    for folder in ['source', 'target']:
+                        folder_path = os.path.join(event_path, folder)
+                        if os.path.exists(folder_path):
+                            is_source = folder == 'source'
+                            for file_name in os.listdir(folder_path):
+                                if file_name.endswith('.txt'):
+                                    news_id = file_name.split('.')[0]
+                                    txt_path = os.path.join(folder_path, file_name)
+                                    
+                                    # Carrega o conteúdo do arquivo .txt
+                                    content = self._load_content(txt_path)
+                                    
+                                    # Valores padrão de metadados
+                                    metadata = {
+                                        'DOP': None,
+                                        'publisher': None,
+                                        'title': None,
+                                        'eventid': None,
+                                        'eventname': None,
+                                        'topic': None,
+                                        'sentence': None,
+                                        'words': None,
+                                        'sourceid': None,
+                                        'DLA': None,
+                                        'SLNS': None
+                                    }
+                                    
+                                    # Procura o arquivo .xml correspondente
+                                    xml_file = os.path.join(folder_path, f"{news_id}.xml")
+                                    if os.path.exists(xml_file):
+                                        metadata = self._load_metadata(xml_file, metadata)
+                                    
+                                    # Adiciona os dados à lista de dados
+                                    self.data.append({
+                                        'category': category,
+                                        'event_id': event_id,
+                                        'news_id': news_id,
+                                        'content': content,
+                                        'is_source': is_source,
+                                        **metadata
+                                    })
+
+        # Converte a lista de dados para um DataFrame
         df = pd.DataFrame(self.data)
         
-        # Define the desired data types for each column
+        # Define os tipos de dados desejados para cada coluna
         dtype_dict = {
+            'category': 'string',
             'event_id': 'string',
             'news_id': 'string',
             'content': 'string',
             'is_source': 'bool',
-            'DOP': 'string',  # Or 'datetime64[ns]' if parsing as date
+            'DOP': 'string',  # Ou 'datetime64[ns]' se quiserem como data
             'publisher': 'string',
             'title': 'string',
             'eventid': 'string',
             'eventname': 'string',
             'topic': 'string',
-            'sentence': 'Int64',  # Nullable integer
-            'words': 'Int64',     # Nullable integer
+            'sentence': 'Int64',  # Inteiro anulável
+            'words': 'Int64',     # Inteiro anulável
             'sourceid': 'string',
             'DLA': 'string',
             'SLNS': 'string'
         }
         
-        # Apply the data types to the DataFrame
+        # Aplica os tipos de dados ao DataFrame
         df = df.astype(dtype_dict)
 
-        output_path = os.path.join(os.getcwd(), 'docs', f'corpus_{self.category}.csv')
+        output_path = os.path.join(os.getcwd(), 'docs', 'corpus_all_categories.csv')
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         df.to_csv(output_path, index=False, encoding='utf-8')
         
         return df
-
 
     def _load_content(self, txt_path):
         """Load the content of a .txt file with error handling for encoding."""
