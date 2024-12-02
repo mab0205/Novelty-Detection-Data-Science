@@ -1,4 +1,6 @@
 from sentence_transformers import SentenceTransformer
+from gensim.models.doc2vec import Doc2Vec,\
+    TaggedDocument
 
 def generate_embeddings(df, text_column, model_name='all-MiniLM-L6-v2'):
     """
@@ -15,3 +17,5 @@ def generate_embeddings(df, text_column, model_name='all-MiniLM-L6-v2'):
     model = SentenceTransformer(model_name)
     embeddings = model.encode(df[text_column].tolist(), convert_to_tensor=True)
     return embeddings
+
+

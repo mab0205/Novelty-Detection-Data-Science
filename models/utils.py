@@ -9,25 +9,23 @@ def evaluate_novelty(y_true, predictions):
     """
     print(classification_report(y_true, predictions))
 
-def prepare_features_without_embeddings(df):
+def prepare_features_without_embeddings(df,selected_columns):
     """
     Prepare features excluding embeddings for novelty detection.
     """
-    pca_features = df[['PC1']].to_numpy()
-    lda_features = df[[col for col in df.columns if col.startswith('topic_')]].to_numpy()
-    combined_features = np.hstack([pca_features, lda_features])
-    return combined_features
+    selected_data = df[selected_columns]
+    return selected_data
 
-def combine_features(df, embeddings):
+def combine_features(df, embeddings, selected_columns):
     """
     Combine embeddings with all LDA topic distributions and PCA features.
     """
-    embeddings = embeddings.cpu().numpy()
+    selected_data = df[selected_columns]
     
-    pca_features = df[['PC1']].to_numpy()
-    lda_features = df[[col for col in df.columns if col.startswith('topic_')]].to_numpy()
-    combined_features = np.hstack([embeddings, pca_features, lda_features])
-    return combined_features
+    combined_df = pd.concat([selected_data.reset_index(drop=True), embeddings.reset_index(drop=True)], axis=1)
+    return combined_df
+
+
 
 
 
