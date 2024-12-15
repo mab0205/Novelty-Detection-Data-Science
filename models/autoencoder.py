@@ -1,46 +1,79 @@
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from sklearn.preprocessing import MinMaxScaler
 import numpy as np
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
+import tensorflow as tf
 
-def build_autoencoder(input_dim):
+def cosine_similarity_loss(y_true, y_pred):
     """
-    Build a simple autoencoder model.
+    Calcula la pérdida basada en la similitud coseno entre los vectores de salida y entrada.
+    Args:
+        y_true: Valores reales (entrada al autoencoder).
+        y_pred: Valores predichos por el autoencoder.
+
+    Returns:
+        Cosine similarity loss.
     """
-    model = Sequential([
-        Dense(64, activation='relu', input_dim=input_dim),
-        Dense(32, activation='relu'),
-        Dense(64, activation='relu'),
-        Dense(input_dim, activation='sigmoid')
-    ])
-    model.compile(optimizer='adam', loss='mse')
-    return model
+    y_true_normalized = tf.nn.l2_normalize(y_true, axis=1)
+    y_pred_normalized = tf.nn.l2_normalize(y_pred, axis=1)
+    cosine_similarity = tf.reduce_sum(y_true_normalized * y_pred_normalized, axis=1)
+    return 1 - tf.reduce_mean(cosine_similarity)  # 1 - similitud promedio
 
-def detect_novelty_autoencoder(train_embeddings, test_embeddings, epochs=50, batch_size=32, threshold=None):
-    """
-    Detect novelty using an autoencoder.
-    """
-    
-    # train_embeddings = train_embeddings.cpu().numpy()
-    # test_embeddings = test_embeddings.cpu().numpy()
-    
-    # Normalize data
-    scaler = MinMaxScaler()
-    train_embeddings = scaler.fit_transform(train_embeddings)
-    test_embeddings = scaler.transform(test_embeddings)
 
-    # Build and train the autoencoder
-    input_dim = train_embeddings.shape[1]
-    autoencoder = build_autoencoder(input_dim)
-    autoencoder.fit(train_embeddings, train_embeddings, epochs=epochs, batch_size=batch_size, verbose=0)
+# def train_autoencoder(train_features, epochs=50, batch_size=256):
+#     """
+#     Train an autoencoder on the given dataset.
 
-    # Reconstruction error
-    reconstructions = autoencoder.predict(test_embeddings)
-    reconstruction_errors = np.mean(np.square(test_embeddings - reconstructions), axis=1)
+#     Args:
+#         train_features (numpy.ndarray): The features to be used for training.
+#         epochs (int): The number of epochs to train the autoencoder. Default is 50.
+#         batch_size (int): The batch size used for training. Default is 256.
 
-    # Define novelty threshold if not provided
-    if threshold is None:
-        threshold = np.percentile(reconstruction_errors, 95)  # Top 5% as novelty
+#     Returns:
+#         Model: The trained autoencoder model.
+#     """
+#     input_dim = train_features.shape[1]
 
-    predictions = (reconstruction_errors > threshold).astype(int)
-    return predictions, reconstruction_errors
+#     # Input layer
+#     input_layer = Input(shape=(input_dim,))
+
+#     # Encoder
+#     encoded = Dense(128, activation='relu')(input_layer)
+#     encoded = Dense(64, activation='relu')(encoded)
+#     encoded = Dense(32, activation='relu')(encoded)
+#     encoded = Dense(16, activation='relu')(encoded)
+
+#     # Bottleneck
+#     bottleneck = Dense(8, activation='relu')(encoded)
+
+#     # Decoder
+#     decoded = Dense(16, activation='relu')(bottleneck)
+#     decoded = Dense(32, activation='relu')(decoded)
+#     decoded = Dense(64, activation='relu')(decoded)
+#     decoded = Dense(128, activation='relu')(decoded)
+
+
+#     # Output layer
+#     output_layer = Dense(input_dim, activation='sigmoid')(decoded)
+
+#     # Autoencoder model
+#     autoencoder = Model(input_layer, output_layer)
+
+#     # Compile the model
+#     autoencoder.compile(optimizer='adam', loss='mse')
+
+#     early_stopping = EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True)
+
+#     autoencoder.fit(
+#         train_features, train_features,
+#         epochs=epochs,
+#         batch_size=batch_size,
+#         shuffle=True,
+#         validation_split=0.2,
+#         callbacks=[early_stopping]
+#     )
+
+#     return autoencoder
+
+
+# trained_autoencoder = train_autoencoder(train_features_combined, epochs=500, batch_size=512)
